@@ -96,7 +96,6 @@ class DataIterator:
           break
         self.source_buffer.append(ss.strip("\n").split("\t"))
 
-      # sort by  history behavior length
       if self.sort_by_length:
         his_length = np.array([len(s[4].split(",")) for s in self.source_buffer])
         tidx = his_length.argsort()
@@ -114,10 +113,8 @@ class DataIterator:
 
     try:
 
-      # actual work here
       while True:
 
-        # read from source file and map to word index
         try:
           ss = self.source_buffer.pop()
         except IndexError:
@@ -130,22 +127,20 @@ class DataIterator:
         mid_list = [self.source_dicts[1][mmid] for mmid in ss[4].split(',')]
         cat_list = [self.source_dicts[2][ccat] for ccat in ss[5].split(',')]
 
-        # read from source file and map to word index
         if self.minlen != None:
           if len(mid_list) <= self.minlen:
             continue
         if self.skip_empty and (not mid_list):
           continue
 
-        fin_mid_sess = mid_list[-10:] # Last 10 items
-        fin_cat_sess = cat_list[-10:] # Last 10 categorys
+        fin_mid_sess = mid_list[-10:] 
+        fin_cat_sess = cat_list[-10:] 
 
         mid_sess_list = []
         cat_sess_list = []
         mid_sess_tgt = []
         cat_sess_tgt = []
 
-        # if self.model_type == "DBPMaN":
         idx = len(mid_list)-5
         while idx >= 10:
           mid_sess_list.insert(0, mid_list[idx-10: idx])
@@ -165,7 +160,6 @@ class DataIterator:
       print("Stop End")
       self.end_of_data = True
 
-    # all sentence pairs in maxibatch filtered out because of length
     if len(source) == 0 or len(target) == 0:
       source, target = self.next()
 

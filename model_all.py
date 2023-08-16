@@ -1,4 +1,4 @@
-# coding=utf-8
+ 
 import math
 import numpy as np
 
@@ -11,13 +11,13 @@ from Dice import dice
 from rnn import dynamic_rnn
 import transformer
 
-#### CAN config #####
+ 
 weight_emb_w = [[16, 8], [8, 4]]
 weight_emb_b = [0, 0]
 print(weight_emb_w, weight_emb_b)
 orders = 3
-order_indep = False  # True
-WEIGHT_EMB_DIM = (sum([w[0] * w[1] for w in weight_emb_w]) + sum(weight_emb_b))  # * orders
+order_indep = False   
+WEIGHT_EMB_DIM = (sum([w[0] * w[1] for w in weight_emb_w]) + sum(weight_emb_b))   
 INDEP_NUM = 1
 if order_indep:
   INDEP_NUM *= orders
@@ -27,7 +27,7 @@ CALC_MODE = "can"
 device = '/gpu:0'
 
 
-#### CAN config #####
+ 
 
 def gen_coaction(ad, his_items, dim, mode="can", mask=None):
   weight, bias = [], []
@@ -53,7 +53,7 @@ def gen_coaction(ad, his_items, dim, mode="can", mask=None):
     hh = []
     for i in range(orders):
       hh.append(his_items ** (i + 1))
-    # hh = [sum(hh)]
+     
     for i, h in enumerate(hh):
       if order_indep:
         weight, bias = weight_orders[i], bias_orders[i]
@@ -71,8 +71,8 @@ def gen_coaction(ad, his_items, dim, mode="can", mask=None):
       mask = tf.expand_dims(mask, axis=-1)
       out_seq = out_seq * mask
   out = tf.reduce_sum(out_seq, 1)
-  # if keep_fake_carte_seq and mode=="emb":
-  #    return out, out_seq
+   
+   
   return out, None
 
 
@@ -91,12 +91,12 @@ class Model(object):
       self.cate_batch_ph = tf.placeholder(tf.int32, [None, ], name='cate_batch_ph')
       self.mask = tf.placeholder(tf.float32, [None, None], name='mask')
 
-      self.mid_sess_his = tf.placeholder(tf.int32, [None, 18, 10], name='mid_sess_his')  # [1024, 18, 10]
+      self.mid_sess_his = tf.placeholder(tf.int32, [None, 18, 10], name='mid_sess_his')   
       self.cat_sess_his = tf.placeholder(tf.int32, [None, 18, 10], name='cat_sess_his')
       self.sess_mask = tf.placeholder(tf.int32, [None, 18], name='sess_mask')
-      self.mid_sess_tgt = tf.placeholder(tf.int32, [None, 18], name='mid_sess_tgt')  # [1024, 18]
+      self.mid_sess_tgt = tf.placeholder(tf.int32, [None, 18], name='mid_sess_tgt')   
       self.cat_sess_tgt = tf.placeholder(tf.int32, [None, 18], name='cat_sess_tgt')
-      self.fin_mid_sess = tf.placeholder(tf.int32, [None, 10], name='fin_mid_sess')  # [1024, 10]
+      self.fin_mid_sess = tf.placeholder(tf.int32, [None, 10], name='fin_mid_sess')   
       self.fin_cat_sess = tf.placeholder(tf.int32, [None, 10], name='fin_cat_sess')
 
       self.seq_len_ph = tf.placeholder(tf.int32, [None], name='seq_len_ph')
@@ -105,7 +105,7 @@ class Model(object):
       self.lr = tf.placeholder(tf.float64, [])
 
       self.use_negsampling = use_negsampling
-      self.use_softmax = False  # use_softmax
+      self.use_softmax = False   
       self.use_coaction = use_coaction
       self.use_cartes = use_cartes
 
@@ -130,10 +130,10 @@ class Model(object):
       print("infonce: ", self.use_infonce)
       if use_negsampling:
         self.noclk_mid_batch_ph = tf.placeholder(tf.int32, [None, None, None],
-                                                 name='noclk_mid_batch_ph')  # generate 3 item IDs from negative sampling.
+                                                 name='noclk_mid_batch_ph') 
         self.noclk_cate_batch_ph = tf.placeholder(tf.int32, [None, None, None], name='noclk_cate_batch_ph')
 
-    # Embedding layer
+     
     with tf.name_scope('Embedding_layer'):
       self.uid_embeddings_var = tf.get_variable("uid_embedding_var", [n_uid, EMBEDDING_DIM])
       self.uid_batch_embedded = tf.nn.embedding_lookup(self.uid_embeddings_var, self.uid_batch_ph)
@@ -165,7 +165,7 @@ class Model(object):
         self.noclk_cate_his_batch_embedded = tf.nn.embedding_lookup(self.cate_embeddings_var,
                                                                     self.noclk_cate_batch_ph)
 
-      ###  co-action ###
+       
       if self.use_coaction:
         ph_dict = {
           "item": [self.mid_batch_ph, self.mid_his_batch_ph, self.mid_his_batch_embedded],
@@ -208,10 +208,10 @@ class Model(object):
     if self.use_negsampling:
       self.noclk_item_his_eb = tf.concat(
         [self.noclk_mid_his_batch_embedded[:, :, 0, :], self.noclk_cate_his_batch_embedded[:, :, 0, :]],
-        -1)  # 0 means only using the first negative item ID. 3 item IDs are inputed in the line 24.
+        -1)   
       self.noclk_item_his_eb = tf.reshape(self.noclk_item_his_eb,
                                           [-1, tf.shape(self.noclk_mid_his_batch_embedded)[1],
-                                           2 * EMBEDDING_DIM])  # cat embedding 18 concate item embedding 18.
+                                           2 * EMBEDDING_DIM])   
 
       self.noclk_his_eb = tf.concat([self.noclk_mid_his_batch_embedded, self.noclk_cate_his_batch_embedded], -1)
       self.noclk_his_eb_sum_1 = tf.reduce_sum(self.noclk_his_eb, 2)
@@ -244,38 +244,26 @@ class Model(object):
   def attention_din_nomask_3dims(self, cur_poi_seq_fea_col, hist_poi_seq_fea_col,
                                  din_deep_layers, din_activation, name_scope,
                                  att_type):
-    # with tf.name_scope("attention_layer_%s" % (att_type)):
-    # cur_poi_seq_fea_col [b, 18, eb]
-    # hist_poi_seq_fea_col [b, 18, 10, eb]
     with tf.variable_scope("attention_layer_%s" % (att_type), reuse=tf.AUTO_REUSE):
-      sess_num = cur_poi_seq_fea_col.get_shape().as_list()[1]  # 18 in [b,18,eb]
-      embed_dim = cur_poi_seq_fea_col.get_shape().as_list()[-1]  # eb
-      seq_len = hist_poi_seq_fea_col.get_shape().as_list()[-2]  # 10 in [b,18,10,eb]
+      sess_num = cur_poi_seq_fea_col.get_shape().as_list()[1]   
+      embed_dim = cur_poi_seq_fea_col.get_shape().as_list()[-1]   
+      seq_len = hist_poi_seq_fea_col.get_shape().as_list()[-2]   
 
       cur_poi_emb_rep = tf.tile(tf.reshape(cur_poi_seq_fea_col, [-1, sess_num, 1, embed_dim]),
-                                [1, 1, seq_len, 1])  # [b,18,10,eb]
-      # 将query复制 seq_len 次 None, seq_len, embed_dim
-      # if att_type.startswith('top40'):
-      #   din_sub = tf.subtract(cur_poi_emb_rep, hist_poi_seq_fea_col)
-      #   din_all = tf.concat([cur_poi_emb_rep, hist_poi_seq_fea_col, din_sub], axis=-1)
-
-      # elif att_type == 'click_sess_att':
-      #   din_all = tf.concat([cur_poi_emb_rep, hist_poi_seq_fea_col], axis=-1)
-      # elif att_type == 'order_att':
-      #   din_all = tf.concat([cur_poi_emb_rep, hist_poi_seq_fea_col], axis=-1)
-      # else:
+                                [1, 1, seq_len, 1])   
+      
       din_all = tf.concat([cur_poi_emb_rep, hist_poi_seq_fea_col], axis=-1)
 
       activation = tf.nn.relu if din_activation == "relu" else tf.nn.tanh
-      input_layer = din_all  # [b,18,10,2*eb]
+      input_layer = din_all   
       for i in range(len(din_deep_layers)):
         deep_layer = tf.layers.dense(input_layer, int(din_deep_layers[i]), activation=activation,
                                      name=name_scope + 'f_%d_att' % (i))
-        # , reuse=tf.AUTO_REUSE
-        input_layer = deep_layer  # [b,18,10,32]
+         
+        input_layer = deep_layer   
 
       din_output_layer = tf.layers.dense(input_layer, 1, activation=None,
-                                         name=name_scope + 'fout_att')  # [b,18,10,1]
+                                         name=name_scope + 'fout_att')   
 
       weighted_outputs = din_output_layer * hist_poi_seq_fea_col
       return weighted_outputs, din_output_layer
@@ -284,13 +272,10 @@ class Model(object):
                            din_deep_layers, din_activation, name_scope,
                            att_type):
     with tf.name_scope("attention_layer_%s" % (att_type)):
-      # cur_poi_seq_fea_col [b, eb]
-      # hist_poi_seq_fea_col [b, 10, eb]
-      embed_dim = cur_poi_seq_fea_col.get_shape().as_list()[-1]  # eb
-      seq_len = hist_poi_seq_fea_col.get_shape().as_list()[-2]  # 10 in [b,10,eb]
+      embed_dim = cur_poi_seq_fea_col.get_shape().as_list()[-1]   
+      seq_len = hist_poi_seq_fea_col.get_shape().as_list()[-2]   
       cur_poi_emb_rep = tf.tile(tf.reshape(cur_poi_seq_fea_col, [-1, 1, embed_dim]), [1, seq_len, 1])
 
-      # 将query复制 seq_len 次 None, seq_len, embed_dim
       if att_type.startswith('top40'):
         din_sub = tf.subtract(cur_poi_emb_rep, hist_poi_seq_fea_col)
         din_all = tf.concat([cur_poi_emb_rep, hist_poi_seq_fea_col, din_sub], axis=-1)
@@ -306,10 +291,10 @@ class Model(object):
       for i in range(len(din_deep_layers)):
         deep_layer = tf.layers.dense(input_layer, int(din_deep_layers[i]), activation=activation,
                                      name=name_scope + 'f_%d_att' % (i))
-        # , reuse=tf.AUTO_REUSE
+         
         input_layer = deep_layer
 
-      din_output_layer = tf.layers.dense(input_layer, 1, activation=None, name=name_scope + 'fout_att')  # b,10,1
+      din_output_layer = tf.layers.dense(input_layer, 1, activation=None, name=name_scope + 'fout_att')   
 
       weighted_outputs = din_output_layer * hist_poi_seq_fea_col
       return weighted_outputs, din_output_layer
@@ -355,7 +340,7 @@ class Model(object):
   def build_loss(self, inp):
 
     with tf.name_scope('Metrics'):
-      # Cross-entropy loss and optimizer initialization
+       
       if self.use_softmax:
         self.y_hat = tf.nn.softmax(inp) + 0.00000001
         ctr_loss = - tf.reduce_mean(tf.log(self.y_hat) * self.target_ph)
@@ -397,7 +382,7 @@ class Model(object):
 
       self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
 
-      # Accuracy metric
+       
       if self.use_softmax:
         self.accuracy = tf.reduce_mean(tf.cast(tf.equal(tf.round(self.y_hat), self.target_ph), tf.float32))
       else:
@@ -406,11 +391,7 @@ class Model(object):
   def train(self, sess, inps):
     if self.use_infonce and self.use_lal_infonce:
       loss, loss_infonce, loss_lal_infonce, accuracy, _ = sess.run([self.loss, self.loss_infonce, self.loss_lal_infonce, self.accuracy, self.optimizer], feed_dict={
-        # uids, mids, cats,
-        # mid_his, cat_his, mid_mask,
-        # mid_sess_his, cat_sess_his, sess_mask,
-        # fin_mid_sess, fin_cat_sess,
-        # target, sl, lr
+        
 
         self.uid_batch_ph: inps[0],
         self.mid_batch_ph: inps[1],
@@ -602,7 +583,7 @@ class Model_DNN(Model):
       inp = tf.concat(
         [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum],
         -1)
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
 
@@ -642,7 +623,7 @@ class Model_FM(Model):
       ], axis=1)
 
     bs = tf.shape(all_emb_2dim)[0]
-    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, 18]) # b*t*
+    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, 18])  
     
     square_of_sum = tf.square(tf.reduce_sum(all_emb_3dim, axis=1, keep_dims=True))
     sum_of_square = tf.reduce_sum(all_emb_3dim*all_emb_3dim, axis=1, keep_dims=True)
@@ -690,7 +671,7 @@ class Model_DeepFM(Model):
       ], axis=1)
 
     bs = tf.shape(all_emb_2dim)[0]
-    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, 18]) # b*t*d
+    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, 18])  
 
     square_of_sum = tf.square(tf.reduce_sum(all_emb_3dim, axis=1, keep_dims=True))
     sum_of_square = tf.reduce_sum(all_emb_3dim*all_emb_3dim, axis=1, keep_dims=True)
@@ -728,7 +709,7 @@ class Model_WideDeep(Model):
       inp = tf.concat(
         [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum],
         -1)
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
 
     logit_wide = tf.layers.dense(inp, 1, activation=None, name="fc_wide")
@@ -751,7 +732,7 @@ class Model_DIN(Model):
                                   )
                                   
 
-    # Attention layer
+     
     with tf.variable_scope('DIN'):
       attention_output = din_attention(self.item_eb, self.item_his_eb, ATTENTION_SIZE, self.mask)
       att_fea = tf.reduce_sum(attention_output, 1)
@@ -764,7 +745,7 @@ class Model_DIN(Model):
         inp = tf.concat(
           [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum, att_fea],
           -1)
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
 
@@ -783,13 +764,13 @@ class Model_DIEN(Model):
                                      model_type=model_type
                                     )
                                     
-    # RNN layer(-s)
+     
     with tf.name_scope('rnn_1'):
       rnn_outputs, _ = dynamic_rnn(GRUCell(HIDDEN_SIZE), inputs=self.item_his_eb,
                                    sequence_length=self.seq_len_ph, dtype=tf.float32,
                                    scope="gru1")
 
-    # Attention layer
+     
     with tf.name_scope('Attention_layer_1'):
       att_outputs, alphas = din_fcn_attention(self.item_eb, rnn_outputs, ATTENTION_SIZE, self.mask,
                                               softmax_stag=1, stag='1_1', mode='LIST', return_alphas=True)
@@ -826,21 +807,18 @@ class Model_DBPMaN(Model):
                                        model_type=model_type
                                       )
                                       
-    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)  # [1024, 18, 10, eb]
+    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)   
     self.cat_sess_his_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_his)
     self.mid_sess_his_eb += self.cat_sess_his_eb
-    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)  # [1024, 18, eb]
+    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)   
     self.cat_sess_tgt_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_tgt)
     self.mid_sess_tgt_eb += self.cat_sess_tgt_eb
-    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)  # [1024, 10, eb]
+    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)   
     self.fin_cat_sess_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.fin_cat_sess)
     self.fin_mid_sess_eb += self.fin_cat_sess_eb
 
-    # Attention layer
+     
     with tf.variable_scope('DBPMaN_Model', reuse=tf.AUTO_REUSE):
-      # 1. Pathway Enhance Module
-      # 1.1 history path enhance
-      # [b, 18, 10 ,eb]
       mid_sess_his_eb_enhance, nclk_his_att_score = self.attention_din_nomask_3dims(
         tf.stop_gradient(self.mid_sess_tgt_eb),
         self.mid_sess_his_eb,
@@ -851,14 +829,14 @@ class Model_DBPMaN(Model):
       )
 
       mask_pw_his_router = self.pathway_router_simple(mid_sess_his_eb_enhance, [32], 10,
-                                                      'his_router')  # b,18,10,1
+                                                      'his_router')   
 
-      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)  # b,18,eb
+      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)   
       out_fea_0 = tf.reduce_mean(mid_sess_his_eb_enhance, axis=-2)
 
       if self.use_lal_infonce:
-        user_proj_emb = mid_sess_his_eb_enhance # b,18,eb
-        item_proj_emb = self.mid_sess_tgt_eb    # b,18,eb
+        user_proj_emb = mid_sess_his_eb_enhance  
+        item_proj_emb = self.mid_sess_tgt_eb     
 
         cost_ui = cl.infonce_cosin_n(
           user_proj_emb,
@@ -888,15 +866,15 @@ class Model_DBPMaN(Model):
       )
 
       mask_pw_cur_router = self.pathway_router_simple(mid_sess_cur_eb_enhance, [32], 10,
-                                                      'cur_router')  # b,10,1
-      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)  # b,eb
+                                                      'cur_router')   
+      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)   
       out_fea_1 = mid_sess_cur_eb_enhance
 
-      # 2. Pathway Matching Module
-      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])  # [B, 1, eb]
-      mid_sess_his_eb_pool = mid_sess_his_eb_enhance  # [B, 18, eb]
+       
+      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])   
+      mid_sess_his_eb_pool = mid_sess_his_eb_enhance   
 
-      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))  # [B, 1, 18]
+      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))   
       attention_output_0 = din_attention(tf.squeeze(mid_sess_cur_eb_pool, 1), mid_sess_his_eb_pool,
                                          ATTENTION_SIZE, self.sess_mask, name_scope='attention_output_0')
 
@@ -915,18 +893,17 @@ class Model_DBPMaN(Model):
         [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum,
         att_fea_0, att_fea_1, out_fea_0, out_fea_1], -1)
 
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
 
   def pathway_router_simple(self, input_layer, hidden_units_list, output_dim, name):
     with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-      net = input_layer  # b,18,10,eb or b,10,eb
+      net = input_layer   
 
-      # net_reshape = tf.reduce_mean(net, axis=-1)  # b,18,10
       net_reshape = tf.squeeze(tf.concat(tf.split(net, net.shape[-2].value, axis=-2), axis=-1),
-                               axis=-2)  # b,18,10*eb
-      # second loop
+                               axis=-2)   
+       
       for i in range(len(hidden_units_list)):
         net_reshape = tf.layers.dense(inputs=net_reshape,
                                       units=hidden_units_list[i],
@@ -938,19 +915,19 @@ class Model_DBPMaN(Model):
       pw_router = tf.layers.dense(inputs=net_reshape,
                                   units=output_dim,
                                   activation=tf.nn.softmax,
-                                  # activation=tf.nn.sigmoid,
+                                   
                                   kernel_initializer=tf.glorot_normal_initializer(),
                                   bias_initializer=tf.glorot_normal_initializer(),
-                                  name='%s_softmax_pw' % (name))  # b,18,10
+                                  name='%s_softmax_pw' % (name))   
 
-      topk_vals, _ = tf.nn.top_k(pw_router, 5)  # B,18,5
-      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)  # B,18,1
+      topk_vals, _ = tf.nn.top_k(pw_router, 5)   
+      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)   
 
-      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)  # B, 18, 10
+      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)   
       mask_val = tf.zeros_like(pw_router)
-      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)  # b,18,10
+      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)   
 
-    return tf.expand_dims(mask_pw_router, axis=-1)  # b,18,10,1
+    return tf.expand_dims(mask_pw_router, axis=-1)   
 
 class Model_DeepMCP(Model):
   def __init__(self, n_uid, n_mid, n_cate, EMBEDDING_DIM, HIDDEN_SIZE, ATTENTION_SIZE, use_negsampling=False,
@@ -976,21 +953,18 @@ class Model_DeepMCP(Model):
                                           tf.log(1 - match_hat + 0.00000001) * (1 - self.target_ph)],
                                         axis=1))
 
-    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)  # [1024, 18, 10, eb]
+    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)   
     self.cat_sess_his_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_his)
     self.mid_sess_his_eb += self.cat_sess_his_eb
-    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)  # [1024, 18, eb]
+    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)   
     self.cat_sess_tgt_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_tgt)
     self.mid_sess_tgt_eb += self.cat_sess_tgt_eb
-    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)  # [1024, 10, eb]
+    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)   
     self.fin_cat_sess_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.fin_cat_sess)
     self.fin_mid_sess_eb += self.fin_cat_sess_eb
 
-    # Attention layer
+     
     with tf.variable_scope('DBPMaN_Model', reuse=tf.AUTO_REUSE):
-      # 1. Pathway Enhance Module
-      # 1.1 history path enhance
-      # [b, 18, 10 ,eb]
       mid_sess_his_eb_enhance, nclk_his_att_score = self.attention_din_nomask_3dims(
         tf.stop_gradient(self.mid_sess_tgt_eb),
         self.mid_sess_his_eb,
@@ -1001,9 +975,9 @@ class Model_DeepMCP(Model):
       )
 
       mask_pw_his_router = self.pathway_router_simple(mid_sess_his_eb_enhance, [32], 10,
-                                                      'his_router')  # b,18,10,1
+                                                      'his_router')   
 
-      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)  # b,18,eb
+      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)   
       out_fea_0 = tf.reduce_mean(mid_sess_his_eb_enhance, axis=-2)
 
       mid_sess_cur_eb_enhance, nclk_cur_att_score = self.attention_din_nomask(
@@ -1016,15 +990,15 @@ class Model_DeepMCP(Model):
       )
 
       mask_pw_cur_router = self.pathway_router_simple(mid_sess_cur_eb_enhance, [32], 10,
-                                                      'cur_router')  # b,10,1
-      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)  # b,eb
+                                                      'cur_router')   
+      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)   
       out_fea_1 = mid_sess_cur_eb_enhance
 
-      # 2. Pathway Matching Module
-      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])  # [B, 1, eb]
-      mid_sess_his_eb_pool = mid_sess_his_eb_enhance  # [B, 18, eb]
+       
+      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])   
+      mid_sess_his_eb_pool = mid_sess_his_eb_enhance   
 
-      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))  # [B, 1, 18]
+      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))   
       attention_output_0 = din_attention(tf.squeeze(mid_sess_cur_eb_pool, 1), mid_sess_his_eb_pool,
                                          ATTENTION_SIZE, self.sess_mask, name_scope='attention_output_0')
 
@@ -1037,18 +1011,18 @@ class Model_DeepMCP(Model):
       [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum,
       att_fea_0, att_fea_1, out_fea_0, out_fea_1], -1)
 
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
 
   def pathway_router_simple(self, input_layer, hidden_units_list, output_dim, name):
     with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-      net = input_layer  # b,18,10,eb or b,10,eb
+      net = input_layer   
 
-      # net_reshape = tf.reduce_mean(net, axis=-1)  # b,18,10
+       
       net_reshape = tf.squeeze(tf.concat(tf.split(net, net.shape[-2].value, axis=-2), axis=-1),
-                               axis=-2)  # b,18,10*eb
-      # second loop
+                               axis=-2)   
+       
       for i in range(len(hidden_units_list)):
         net_reshape = tf.layers.dense(inputs=net_reshape,
                                       units=hidden_units_list[i],
@@ -1060,19 +1034,19 @@ class Model_DeepMCP(Model):
       pw_router = tf.layers.dense(inputs=net_reshape,
                                   units=output_dim,
                                   activation=tf.nn.softmax,
-                                  # activation=tf.nn.sigmoid,
+                                   
                                   kernel_initializer=tf.glorot_normal_initializer(),
                                   bias_initializer=tf.glorot_normal_initializer(),
-                                  name='%s_softmax_pw' % (name))  # b,18,10
+                                  name='%s_softmax_pw' % (name))   
 
-      topk_vals, _ = tf.nn.top_k(pw_router, 5)  # B,18,5
-      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)  # B,18,1
+      topk_vals, _ = tf.nn.top_k(pw_router, 5)   
+      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)   
 
-      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)  # B, 18, 10
+      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)   
       mask_val = tf.zeros_like(pw_router)
-      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)  # b,18,10
+      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)   
 
-    return tf.expand_dims(mask_pw_router, axis=-1)  # b,18,10,1
+    return tf.expand_dims(mask_pw_router, axis=-1)   
 
 class Model_DMR(Model):
   def __init__(self, n_uid, n_mid, n_cate, EMBEDDING_DIM, HIDDEN_SIZE, ATTENTION_SIZE, use_negsampling=False,
@@ -1088,7 +1062,7 @@ class Model_DMR(Model):
                                     lal_infonce_w=lal_infonce_w, infonce_loss_type=infonce_loss_type,
                                     model_type=model_type
                                   )
-    # Attention layer
+     
     with tf.variable_scope('DIN'):
       dm_item_vectors = tf.get_variable("dm_item_vectors", [n_mid, EMBEDDING_DIM])
       dm_item_bias = tf.get_variable("dm_item_bias", [n_mid], initializer=tf.zeros_initializer(), trainable=False)
@@ -1110,7 +1084,7 @@ class Model_DMR(Model):
       inp = tf.concat(
         [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum, rel_u2i, att_fea],
         -1)
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
   
@@ -1119,26 +1093,26 @@ class Model_DMR(Model):
       inputs = item_his_emb
       att_layer1 = tf.layers.dense(inputs, 80, activation=tf.nn.sigmoid, name='dm_att_1')
       att_layer2 = tf.layers.dense(att_layer1, 40, activation=tf.nn.sigmoid, name='dm_att_2')
-      att_layer3 = tf.layers.dense(att_layer2, 1, activation=None, name='dm_att_3')  # B,T,1
-      scores = tf.transpose(att_layer3, [0, 2, 1]) # B,1,T
+      att_layer3 = tf.layers.dense(att_layer2, 1, activation=None, name='dm_att_3')   
+      scores = tf.transpose(att_layer3, [0, 2, 1])  
 
-      bool_mask = tf.equal(mask, tf.ones_like(mask))  # B,T
-      key_masks = tf.expand_dims(bool_mask, 1)  # B,1,T
+      bool_mask = tf.equal(mask, tf.ones_like(mask))   
+      key_masks = tf.expand_dims(bool_mask, 1)   
       paddings = tf.ones_like(scores) * (-2 ** 32 + 1)
       scores = tf.where(key_masks, scores, paddings)
 
-      scores_tile = tf.tile(tf.reduce_sum(scores, axis=1), [1, tf.shape(scores)[-1]]) # B, T*T
-      scores_tile = tf.reshape(scores_tile, [-1, tf.shape(scores)[-1], tf.shape(scores)[-1]]) # B, T, T
-      diag_vals = tf.ones_like(scores_tile)  # B, T, T
+      scores_tile = tf.tile(tf.reduce_sum(scores, axis=1), [1, tf.shape(scores)[-1]])  
+      scores_tile = tf.reshape(scores_tile, [-1, tf.shape(scores)[-1], tf.shape(scores)[-1]])  
+      diag_vals = tf.ones_like(scores_tile)   
 
       tril = tf.linalg.LinearOperatorLowerTriangular(diag_vals).to_dense()
       paddings = tf.ones_like(tril) * (-2 ** 32 + 1)
-      scores_tile = tf.where(tf.equal(tril, 0), paddings, scores_tile)  # B, T, T
-      scores_tile = tf.nn.softmax(scores_tile) # B, T, T
-      att_dm_item_his_eb = tf.matmul(scores_tile, item_his_emb) # B, T, E
+      scores_tile = tf.where(tf.equal(tril, 0), paddings, scores_tile)   
+      scores_tile = tf.nn.softmax(scores_tile)  
+      att_dm_item_his_eb = tf.matmul(scores_tile, item_his_emb)  
 
       dnn_layer1 = tf.layers.dense(att_dm_item_his_eb, EMBEDDING_DIM, activation=None, name='dm_fcn_1')
-      dnn_layer1 = prelu(dnn_layer1, 'dm_fcn_1') # B, T, E
+      dnn_layer1 = prelu(dnn_layer1, 'dm_fcn_1')  
 
       user_vector = dnn_layer1[:, -1, :]
 
@@ -1171,13 +1145,13 @@ class Model_CL4CTR(Model):
                                        model_type=model_type
                                       )
                                       
-    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)  # [1024, 18, 10, eb]
+    self.mid_sess_his_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_his)   
     self.cat_sess_his_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_his)
     self.mid_sess_his_eb += self.cat_sess_his_eb
-    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)  # [1024, 18, eb]
+    self.mid_sess_tgt_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.mid_sess_tgt)   
     self.cat_sess_tgt_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.cat_sess_tgt)
     self.mid_sess_tgt_eb += self.cat_sess_tgt_eb
-    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)  # [1024, 10, eb]
+    self.fin_mid_sess_eb = tf.nn.embedding_lookup(self.mid_embeddings_var, self.fin_mid_sess)   
     self.fin_cat_sess_eb = tf.nn.embedding_lookup(self.cate_embeddings_var, self.fin_cat_sess)
     self.fin_mid_sess_eb += self.fin_cat_sess_eb
 
@@ -1188,7 +1162,7 @@ class Model_CL4CTR(Model):
     ], axis=1)
 
     bs = tf.shape(all_emb_2dim)[0]
-    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, EMBEDDING_DIM]) # b*t*d
+    all_emb_3dim = tf.reshape(all_emb_2dim, [bs, -1, EMBEDDING_DIM])  
     tmp_mask = tf.ones(shape=[bs, tf.shape(all_emb_3dim)[1]], dtype=tf.float32)
 
     with tf.variable_scope("cl4ctr", reuse=tf.AUTO_REUSE):
@@ -1225,11 +1199,11 @@ class Model_CL4CTR(Model):
         tf.pow((view1_proj - view2_proj), 2.0)
       )
 
-    # Attention layer
+     
     with tf.variable_scope('DBPMaN_Model', reuse=tf.AUTO_REUSE):
-      # 1. Pathway Enhance Module
-      # 1.1 history path enhance
-      # [b, 18, 10 ,eb]
+       
+       
+       
       mid_sess_his_eb_enhance, nclk_his_att_score = self.attention_din_nomask_3dims(
         tf.stop_gradient(self.mid_sess_tgt_eb),
         self.mid_sess_his_eb,
@@ -1240,9 +1214,9 @@ class Model_CL4CTR(Model):
       )
 
       mask_pw_his_router = self.pathway_router_simple(mid_sess_his_eb_enhance, [32], 10,
-                                                      'his_router')  # b,18,10,1
+                                                      'his_router')   
 
-      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)  # b,18,eb
+      mid_sess_his_eb_enhance = tf.reduce_sum((mid_sess_his_eb_enhance * mask_pw_his_router), axis=-2)   
       out_fea_0 = tf.reduce_mean(mid_sess_his_eb_enhance, axis=-2)
 
       mid_sess_cur_eb_enhance, nclk_cur_att_score = self.attention_din_nomask(
@@ -1255,15 +1229,15 @@ class Model_CL4CTR(Model):
       )
 
       mask_pw_cur_router = self.pathway_router_simple(mid_sess_cur_eb_enhance, [32], 10,
-                                                      'cur_router')  # b,10,1
-      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)  # b,eb
+                                                      'cur_router')   
+      mid_sess_cur_eb_enhance = tf.reduce_sum((mid_sess_cur_eb_enhance * mask_pw_cur_router), axis=-2)   
       out_fea_1 = mid_sess_cur_eb_enhance
 
-      # 2. Pathway Matching Module
-      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])  # [B, 1, eb]
-      mid_sess_his_eb_pool = mid_sess_his_eb_enhance  # [B, 18, eb]
+       
+      mid_sess_cur_eb_pool = tf.reshape(mid_sess_cur_eb_enhance, [-1, 1, EMBEDDING_DIM])   
+      mid_sess_his_eb_pool = mid_sess_his_eb_enhance   
 
-      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))  # [B, 1, 18]
+      sess_score = tf.matmul(mid_sess_cur_eb_pool, tf.transpose(mid_sess_his_eb_pool, [0, 2, 1]))   
       attention_output_0 = din_attention(tf.squeeze(mid_sess_cur_eb_pool, 1), mid_sess_his_eb_pool,
                                          ATTENTION_SIZE, self.sess_mask, name_scope='attention_output_0')
 
@@ -1276,18 +1250,18 @@ class Model_CL4CTR(Model):
       [self.uid_batch_embedded, self.item_eb, self.item_his_eb_sum, self.item_eb * self.item_his_eb_sum,
       att_fea_0, att_fea_1, out_fea_0, out_fea_1], -1)
 
-    # Fully connected layer
+     
     logit = self.build_fcn_net(inp, use_dice=True)
     self.build_loss(logit)
 
   def pathway_router_simple(self, input_layer, hidden_units_list, output_dim, name):
     with tf.variable_scope(name, reuse=tf.AUTO_REUSE):
-      net = input_layer  # b,18,10,eb or b,10,eb
+      net = input_layer   
 
-      # net_reshape = tf.reduce_mean(net, axis=-1)  # b,18,10
+       
       net_reshape = tf.squeeze(tf.concat(tf.split(net, net.shape[-2].value, axis=-2), axis=-1),
-                               axis=-2)  # b,18,10*eb
-      # second loop
+                               axis=-2)   
+       
       for i in range(len(hidden_units_list)):
         net_reshape = tf.layers.dense(inputs=net_reshape,
                                       units=hidden_units_list[i],
@@ -1299,16 +1273,16 @@ class Model_CL4CTR(Model):
       pw_router = tf.layers.dense(inputs=net_reshape,
                                   units=output_dim,
                                   activation=tf.nn.softmax,
-                                  # activation=tf.nn.sigmoid,
+                                   
                                   kernel_initializer=tf.glorot_normal_initializer(),
                                   bias_initializer=tf.glorot_normal_initializer(),
-                                  name='%s_softmax_pw' % (name))  # b,18,10
+                                  name='%s_softmax_pw' % (name))   
 
-      topk_vals, _ = tf.nn.top_k(pw_router, 5)  # B,18,5
-      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)  # B,18,1
+      topk_vals, _ = tf.nn.top_k(pw_router, 5)   
+      min_topk_vals = tf.reduce_min(topk_vals, axis=-1, keepdims=True)   
 
-      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)  # B, 18, 10
+      pw_bool = tf.math.greater_equal(pw_router, min_topk_vals)   
       mask_val = tf.zeros_like(pw_router)
-      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)  # b,18,10
+      mask_pw_router = tf.where(pw_bool, pw_router, mask_val)   
 
-    return tf.expand_dims(mask_pw_router, axis=-1)  # b,18,10,1
+    return tf.expand_dims(mask_pw_router, axis=-1)   

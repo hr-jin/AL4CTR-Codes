@@ -13,14 +13,12 @@ def dice(_x, axis=-1, epsilon=0.000000001, name=''):
     broadcast_shape = [1] * len(input_shape)
     broadcast_shape[axis] = input_shape[axis]
 
-  # case: train mode (uses stats of the current batch)
   mean = tf.reduce_mean(_x, axis=reduction_axes)
   brodcast_mean = tf.reshape(mean, broadcast_shape)
   std = tf.reduce_mean(tf.square(_x - brodcast_mean) + epsilon, axis=reduction_axes)
   std = tf.sqrt(std)
   brodcast_std = tf.reshape(std, broadcast_shape)
   x_normed = (_x - brodcast_mean) / (brodcast_std + epsilon)
-  # x_normed = tf.layers.batch_normalization(_x, center=False, scale=False)
   x_p = tf.sigmoid(x_normed)
 
 

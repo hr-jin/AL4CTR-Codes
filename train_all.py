@@ -1,6 +1,6 @@
-# coding=utf-8
+ 
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  # Force TF to use only the CPU
+ 
 
 import sys
 import time
@@ -21,15 +21,15 @@ best_auc = 0.0
 
 
 def prepare_data(model_type, inputs, target, maxlen=100):
-  # x: a list of sentences
-  lengths_x = [len(inp[4]) for inp in inputs] # [len1, len2, ]
-  lengths_sess = [len(inp[5]) for inp in inputs] # [session_len1, session_len2, ]
-  seqs_mid = [inp[3] for inp in inputs] # [[], [], ...]
-  seqs_cat = [inp[4] for inp in inputs] # [[], [], ...]
-  seqs_mid_sess = [inp[5] for inp in inputs] # [[[],[],...], [[],[],..], ...]
-  seqs_cat_sess = [inp[6] for inp in inputs] # [[[],[],...], [[],[],..], ...]
-  seqs_mid_tgt = [inp[7] for inp in inputs] # [[], [], ...]
-  seqs_cat_tgt = [inp[8] for inp in inputs] # [[], [], ...]
+   
+  lengths_x = [len(inp[4]) for inp in inputs]  
+  lengths_sess = [len(inp[5]) for inp in inputs]  
+  seqs_mid = [inp[3] for inp in inputs]  
+  seqs_cat = [inp[4] for inp in inputs]  
+  seqs_mid_sess = [inp[5] for inp in inputs]  
+  seqs_cat_sess = [inp[6] for inp in inputs]  
+  seqs_mid_tgt = [inp[7] for inp in inputs]  
+  seqs_cat_tgt = [inp[8] for inp in inputs]  
 
   if maxlen is not None:
     new_seqs_mid = []
@@ -48,7 +48,7 @@ def prepare_data(model_type, inputs, target, maxlen=100):
         new_seqs_mid.append(inp[3])
         new_seqs_cat.append(inp[4])
         new_lengths_x.append(l_x)
-    # if model_type == "DBPMaN":
+     
     for l_sess, inp in zip(lengths_sess, inputs):
       if l_sess > 18:
         new_seqs_mid_sess.append(inp[5][l_sess - 18:])
@@ -81,8 +81,8 @@ def prepare_data(model_type, inputs, target, maxlen=100):
   mid_sess_tgt = np.zeros((n_samples, 18))
   cat_sess_tgt = np.zeros((n_samples, 18))
 
-  fin_mid_sess = np.array([inp[9] for inp in inputs]) # b*10
-  fin_cat_sess = np.array([inp[10] for inp in inputs]) # b*10
+  fin_mid_sess = np.array([inp[9] for inp in inputs])  
+  fin_cat_sess = np.array([inp[10] for inp in inputs])  
 
   mid_mask = np.zeros((n_samples, maxlen_x)).astype('float32')
   sess_mask = np.zeros((n_samples, maxlen_sess)).astype('float32')
@@ -93,7 +93,7 @@ def prepare_data(model_type, inputs, target, maxlen=100):
     sess_mask[idx, :lengths_sess[idx]] = 1.
     mid_his[idx, :lengths_x[idx]] = s_x
     cat_his[idx, :lengths_x[idx]] = s_y
-    # if model_type == "DBPMaN":
+     
     mid_sess_his[idx, :lengths_sess[idx]] = sess_x
     cat_sess_his[idx, :lengths_sess[idx]] = sess_y
     mid_sess_tgt[idx, :lengths_sess[idx]] = sess_x_tgt
@@ -103,14 +103,6 @@ def prepare_data(model_type, inputs, target, maxlen=100):
   mids = np.array([inp[1] for inp in inputs])
   cats = np.array([inp[2] for inp in inputs])
 
-  # uid [1024*1]
-  # mid [1024*1] 候选
-  # mid_his [1024, 100] 历史商品序列
-  # cat_his [1024, 100] 历史类别序列
-  # mid_sess_his [1024, 18, 10] 10是session长度，18是session组成的序列长度
-  # cat_sess_his
-  # fin_mid_sess [1024, 10]
-  # fin_cat_sess [1024, 10]
 
   return uids, mids, cats, mid_his, cat_his, mid_mask, mid_sess_his, cat_sess_his, mid_sess_tgt, cat_sess_tgt, sess_mask, fin_mid_sess, fin_cat_sess, np.array(
     target), np.array(lengths_x)
@@ -190,7 +182,7 @@ def eval(sess, use_infonce, use_lal_infonce, model_type, test_data, model):
   global best_auc
   if best_auc < test_auc:
     best_auc = test_auc
-    # model.save(sess, model_path)
+     
   if use_infonce and use_lal_infonce:
     return test_auc, loss_sum, loss_infonce_sum, loss_lal_infonce_sum,  accuracy_sum
   elif use_infonce:
